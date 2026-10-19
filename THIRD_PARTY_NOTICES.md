@@ -29,7 +29,8 @@ The collected texts distinguish these library terms from the mod source license.
 Il2CppInterop and its use are covered by LGPL-3.0-only. It is loaded as a separate
 library. Users may modify or replace it and rebuild against a compatible version;
 this project imposes no restriction on reverse engineering to debug those modifications.
-The package includes the mod's actual build sources, and the linked source above
+The release provides the mod's matching build sources as a separate archive
+linked from `SOURCE.txt`; the library source above
 identifies the interop library version used for the documented local build.
 
 ## Origin and game content

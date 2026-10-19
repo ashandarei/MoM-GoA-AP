@@ -89,20 +89,25 @@ def make_bundle(snapshot: dict[str, bytes], dll: bytes, build_info: dict) -> tup
     sources = dict(snapshot)
     sources["BUILD-INFO.json"] = json_bytes(build_info)
     source_zip = archive_bytes(sources)
+    version = re.search(rb'"MoM Direct Controller", "([0-9.]+)"', snapshot["ControllerMod.cs"])[1].decode()
+    source_url = f"https://github.com/ashandarei/MoM-GoA-AP/releases/download/v{version}/MoM-GoA-AP-source.zip"
     payload = legal_payload(snapshot)
-    payload.update({"Mods/MoMController.dll": dll, "source.zip": source_zip,
-                    "README.md": snapshot["README.md"],
-                    "docs/development-notes.md": snapshot["docs/development-notes.md"],
-                    "docs/extraction.json": snapshot["docs/extraction.json"]})
+    payload["MoMController.dll"] = dll
+    payload["SOURCE.txt"] = (
+        f"MoM-GoA-AP {version} - corresponding source and build instructions\n"
+        f"Download: {source_url}\n"
+        f"SHA-256: {sha256(source_zip)}\n"
+        "The source download is separate; it is not needed to run the mod.\n"
+    ).encode()
     metadata = {
-        "schema_version": 1,
-        "dll_sha256": sha256(dll),
-        "source_zip_sha256": sha256(source_zip),
+        "schema_version": 1, "version": version, "loader_version": "0.7.3",
+        "sha256": sha256(dll),
+        "source": {"url": source_url, "sha256": sha256(source_zip)},
         "source_commit": build_info["source_commit"],
         "source_snapshot_sha256": build_info["source_snapshot_sha256"],
         "files": {name: sha256(data) for name, data in sorted(payload.items())},
     }
-    payload["package-manifest.json"] = json_bytes(metadata)
+    payload["manifest.json"] = json_bytes(metadata)
     return archive_bytes(payload), source_zip, metadata
 
 
@@ -155,9 +160,9 @@ def package(root: Path, game_dir: Path, output_root: Path) -> Path:
     with tempfile.TemporaryDirectory(prefix=".mom-package-", dir=output_root) as temporary:
         staged = Path(temporary) / "bundle"
         staged.mkdir()
-        (staged / f"{name}.zip").write_bytes(binary_zip)
-        (staged / "source.zip").write_bytes(source_zip)
-        (staged / "package-manifest.json").write_bytes(json_bytes(metadata))
+        (staged / "MoM-GoA-AP-runtime.zip").write_bytes(binary_zip)
+        (staged / "MoM-GoA-AP-source.zip").write_bytes(source_zip)
+        (staged / "manifest.json").write_bytes(json_bytes(metadata))
         staged.rename(destination)
     return destination
 

@@ -38,17 +38,23 @@ third-party notices, and consolidated third-party license texts.
 ```
 
 The helper builds from the explicit `release-files.json` source list and writes
-a binary ZIP, matching `source.zip`, and file hashes under `artifacts/release`.
+`MoM-GoA-AP-runtime.zip`, a separate matching `MoM-GoA-AP-source.zip`, and
+an installer `manifest.json` under `artifacts/release`.
 The source archive includes the actual build inputs, tests, scripts, SDK version
 and dependency hashes. Game/dependency binaries and local data are excluded.
 New build/test sources must be added to the source list.
 
-Keep the source archive and license files with the package when distributing it.
-Recipients can rebuild from the extracted sources using the command in **Verify**
-below. The private GitHub repository is not their only source-delivery path.
-Extract packages into an empty folder, then copy `Mods/MoMController.dll` into
-the installed game's `Mods` folder with the game closed. Keep the accompanying
-license files and sources; do not overwrite the game's own license files.
+Publish both ZIPs together on the matching `v<version>` GitHub release. The
+runtime ZIP contains `MoMController.dll`, `manifest.json`, the three legal files,
+and `SOURCE.txt` linking to the corresponding source ZIP with its SHA-256.
+Source is available separately and does not need to be downloaded to run the mod.
+Keep both assets available for recipients of that binary.
+
+For manual installation, copy `MoMController.dll` to the game's `Mods` folder
+with MoM closed. Keep the remaining runtime files in
+`UserData/MoMController` so the game's own license files are not overwritten.
+ArchipelagoMine's Install/Repair flow downloads and verifies the runtime release
+and installs this same DLL/license payload; it does not download the source ZIP.
 
 The packaging helper does not install or launch a game, publish a release,
 or overwrite an existing package directory.

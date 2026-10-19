@@ -19,13 +19,18 @@ class ReleasePackagingTests(unittest.TestCase):
     def setUp(self):
         self.snapshot = packager.source_snapshot(ROOT)
 
-    def test_binary_contains_matching_sources_complete_notices_and_only_our_dll(self):
+    def test_runtime_and_separate_source_have_matching_hashes_and_complete_notices(self):
         build_info = {"source_commit": "test", "source_snapshot_sha256": "test",
                       "source_files": {name: packager.sha256(data) for name, data in self.snapshot.items()}}
         binary, sources, manifest = packager.make_bundle(self.snapshot, b"our DLL", build_info)
         with zipfile.ZipFile(io.BytesIO(binary)) as archive:
-            self.assertEqual(["Mods/MoMController.dll"], [n for n in archive.namelist() if n.endswith(".dll")])
-            self.assertEqual(sources, archive.read("source.zip"))
+            self.assertEqual(["MoMController.dll"], [n for n in archive.namelist() if n.endswith(".dll")])
+            self.assertNotIn("source.zip", archive.namelist())
+            self.assertEqual(manifest, json.loads(archive.read("manifest.json")))
+            self.assertEqual(packager.sha256(sources), manifest["source"]["sha256"])
+            self.assertIn(manifest["source"]["url"].encode(), archive.read("SOURCE.txt"))
+            self.assertEqual("0.7.3", manifest["loader_version"])
+            self.assertEqual(packager.sha256(b"our DLL"), manifest["sha256"])
             for name in packager.LEGAL_FILES:
                 self.assertEqual(self.snapshot[name], archive.read(name))
             self.assertFalse(any("licensing-review" in name or "licensing-comparisons" in name for name in archive.namelist()))
