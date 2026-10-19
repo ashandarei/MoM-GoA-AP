@@ -1,0 +1,132 @@
+{
+  "source_repository": "https://github.com/ashandarei/ArchipelagoMine",
+  "source_commit": "2b9818a2d47fc2661ba6a0085e94cc25b1660bde",
+  "method": "Tracked-file snapshot with standalone path and documentation adjustments; original Git history remains in the source repository.",
+  "files": [
+    {
+      "source": "LICENSE",
+      "destination": "LICENSE",
+      "source_sha256": "230184f60bae2feaf244f10a8bac053c8ff33a183bcc365b4d8b876d2b7f4809"
+    },
+    {
+      "source": "scripts/build-install-mom-controller.ps1",
+      "destination": "scripts/build-install-mom-controller.ps1",
+      "source_sha256": "30101f59f91ed4da2ae630c69a5d0014cea3ff071836cd6592eafa0953981d85"
+    },
+    {
+      "source": "scripts/start-mom-song.ps1",
+      "destination": "scripts/start-mom-song.ps1",
+      "source_sha256": "56362ca2831e4d64f0e98086267e07cf96109898f5d1e149fc80d7c67dff5726"
+    },
+    {
+      "source": "tools/mom_controller/.gitignore",
+      "destination": ".gitignore",
+      "source_sha256": "79914b5e84e1a58b12d9e874ea343e2d131dcdaaf0a3bacf01210219fc679d13"
+    },
+    {
+      "source": "tools/mom_controller/CompletionExit.cs",
+      "destination": "CompletionExit.cs",
+      "source_sha256": "25192636b2092798de27567f79c042014d1d67746e2e2450a7d3305398e8d1f0"
+    },
+    {
+      "source": "tools/mom_controller/ControllerMod.cs",
+      "destination": "ControllerMod.cs",
+      "source_sha256": "fba23d183d72e428bac907fda4bfd14132e6c3c71b973e188288ac81263b953c"
+    },
+    {
+      "source": "tools/mom_controller/DualSenseBluetoothInput.cs",
+      "destination": "DualSenseBluetoothInput.cs",
+      "source_sha256": "39c0385c547f17f85aca208d9e0a3b42de2094310b719540fb8e39e56abf2d3c"
+    },
+    {
+      "source": "tools/mom_controller/DualSenseBluetoothReport.cs",
+      "destination": "DualSenseBluetoothReport.cs",
+      "source_sha256": "cc575177ed8d397f6d40380035619d7e5fd1bb3b7f2ed4eb93170b8c1b44e5b6"
+    },
+    {
+      "source": "tools/mom_controller/DualSenseUSB.json",
+      "destination": "DualSenseUSB.json",
+      "source_sha256": "4e8a55bbceb9c2fa1b9bcf9ec1c25d9506b919e227bc52618db447abc890e9ea"
+    },
+    {
+      "source": "tools/mom_controller/FastSongBoot.cs",
+      "destination": "FastSongBoot.cs",
+      "source_sha256": "145974526f6fd0c47ee15923353c7b90bf221ec9549007aeb3704435a069dca3"
+    },
+    {
+      "source": "tools/mom_controller/MoMController.csproj",
+      "destination": "MoMController.csproj",
+      "source_sha256": "1baf3ddceebdf7c4613248a289bd53c6260ded60f3e054cf5ff4649e5421d5b3"
+    },
+    {
+      "source": "tools/mom_controller/QuitDiagnostics.cs",
+      "destination": "QuitDiagnostics.cs",
+      "source_sha256": "a48e04459e58864f9aa0c0fb8a912cd8ed669d375402f0feb031e4f8eddf133b"
+    },
+    {
+      "source": "tools/mom_controller/README.md",
+      "destination": "docs/development-notes.md",
+      "source_sha256": "897cd43430b9459722257b2bbbe19b3fdefe51d72fb7f77f88681c8fe7ee7ddd"
+    },
+    {
+      "source": "tools/mom_controller/SongCatalogExporter.cs",
+      "destination": "SongCatalogExporter.cs",
+      "source_sha256": "ecd5853dc4481bf566e04f0e1dd47f748bc9866cef8922784beaa86ff8affcfd"
+    },
+    {
+      "source": "tools/mom_controller/SongLaunchPreferences.cs",
+      "destination": "SongLaunchPreferences.cs",
+      "source_sha256": "8a7c18c5369cd1484cb596eb06b33655cb8153505d44eb861953ee9b7adcf1b3"
+    },
+    {
+      "source": "tools/mom_controller/SongLaunchService.cs",
+      "destination": "SongLaunchService.cs",
+      "source_sha256": "189bebf3eddef4a20fae7ce5dcde6e1ff5c3288f79ad6754d27a76afd933398f"
+    },
+    {
+      "source": "tools/mom_controller/SongResultRecorder.cs",
+      "destination": "SongResultRecorder.cs",
+      "source_sha256": "b0bffb522c533d1a878c37a76abcd4316babd0ee1de7f967328a3e699bff8f2e"
+    },
+    {
+      "source": "tools/mom_controller/THIRD_PARTY_NOTICES.md",
+      "destination": "THIRD_PARTY_NOTICES.md",
+      "source_sha256": "960f2e2f3b7b64668f0bcc7be68bd6632825313cfddb02998b8513d2509df1b6"
+    },
+    {
+      "source": "tools/mom_controller/WindowFocusReturn.cs",
+      "destination": "WindowFocusReturn.cs",
+      "source_sha256": "587fc8ba54fa7ace845a6c8086b87cc486825ad07be9209f43cc6c050bff15dd"
+    },
+    {
+      "source": "tools/mom_controller/read_results.py",
+      "destination": "read_results.py",
+      "source_sha256": "e71ce746a896996facfe437e20e31890da61dd134d16e53741a1b0ff81fbc8b1"
+    },
+    {
+      "source": "tools/mom_controller/tests/CompletionExit.Tests.cs",
+      "destination": "tests/CompletionExit.Tests.cs",
+      "source_sha256": "ed5772c26e6e93c1d3a814cfc25fe07ff8ecc81a513fe0fe85c714eeae8370f3"
+    },
+    {
+      "source": "tools/mom_controller/tests/CompletionExit.Tests.csproj",
+      "destination": "tests/CompletionExit.Tests.csproj",
+      "source_sha256": "9a7d2d2a1b66493d12a083bf1ed68f085285145fc2843df2e2031b6a6a119900"
+    },
+    {
+      "source": "tools/mom_controller/tests/test_layout.py",
+      "destination": "tests/test_layout.py",
+      "source_sha256": "297f1d16e5d36b701e21095f307cc65d05e54ff37072f8bfedbe2e89c5e42d2d"
+    },
+    {
+      "source": "tools/mom_controller/tests/test_results.py",
+      "destination": "tests/test_results.py",
+      "source_sha256": "678d0c3e8409c252a5a57e870a26996c179bb85e9884d1100afd166f0b98d505"
+    },
+    {
+      "source": "worlds/kh3/client_support/mom_results.py",
+      "destination": "mom_results.py",
+      "source_sha256": "4ce1fb491119705ae7d0f9bc8a87a71fe5e0bc7d1bc5807f68817e2b00b4ee60"
+    }
+  ]
+}

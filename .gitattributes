@@ -1,0 +1,9 @@
+* text=auto
+*.ps1 text eol=crlf
+*.cs text eol=lf
+*.csproj text eol=lf
+*.py text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.txt text eol=lf
+THIRD_PARTY_LICENSES.txt -text -whitespace

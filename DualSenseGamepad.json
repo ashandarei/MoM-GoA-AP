@@ -1,0 +1,252 @@
+{
+  "name": "MoMDualSenseUSB",
+  "extend": "Gamepad",
+  "format": "MOMP",
+  "displayName": "DualSense (USB)",
+  "controls": [
+    {
+      "name": "buttonSouth",
+      "layout": "Button",
+      "format": "BIT",
+      "offset": 0,
+      "bit": 0,
+      "sizeInBits": 1
+    },
+    {
+      "name": "buttonEast",
+      "layout": "Button",
+      "format": "BIT",
+      "offset": 0,
+      "bit": 1,
+      "sizeInBits": 1
+    },
+    {
+      "name": "buttonWest",
+      "layout": "Button",
+      "format": "BIT",
+      "offset": 0,
+      "bit": 2,
+      "sizeInBits": 1
+    },
+    {
+      "name": "buttonNorth",
+      "layout": "Button",
+      "format": "BIT",
+      "offset": 0,
+      "bit": 3,
+      "sizeInBits": 1
+    },
+    {
+      "name": "select",
+      "layout": "Button",
+      "format": "BIT",
+      "offset": 0,
+      "bit": 4,
+      "sizeInBits": 1
+    },
+    {
+      "name": "systemButton",
+      "layout": "Button",
+      "format": "BIT",
+      "offset": 0,
+      "bit": 5,
+      "sizeInBits": 1
+    },
+    {
+      "name": "start",
+      "layout": "Button",
+      "format": "BIT",
+      "offset": 0,
+      "bit": 6,
+      "sizeInBits": 1
+    },
+    {
+      "name": "leftStickPress",
+      "layout": "Button",
+      "format": "BIT",
+      "offset": 0,
+      "bit": 7,
+      "sizeInBits": 1
+    },
+    {
+      "name": "rightStickPress",
+      "layout": "Button",
+      "format": "BIT",
+      "offset": 1,
+      "bit": 0,
+      "sizeInBits": 1
+    },
+    {
+      "name": "leftShoulder",
+      "layout": "Button",
+      "format": "BIT",
+      "offset": 1,
+      "bit": 1,
+      "sizeInBits": 1
+    },
+    {
+      "name": "rightShoulder",
+      "layout": "Button",
+      "format": "BIT",
+      "offset": 1,
+      "bit": 2,
+      "sizeInBits": 1
+    },
+    {
+      "name": "dpad",
+      "layout": "Dpad",
+      "format": "BIT",
+      "offset": 1,
+      "bit": 0,
+      "sizeInBits": 8
+    },
+    {
+      "name": "dpad/up",
+      "layout": "Button",
+      "format": "BIT",
+      "offset": 0,
+      "bit": 3,
+      "sizeInBits": 1
+    },
+    {
+      "name": "dpad/down",
+      "layout": "Button",
+      "format": "BIT",
+      "offset": 0,
+      "bit": 4,
+      "sizeInBits": 1
+    },
+    {
+      "name": "dpad/left",
+      "layout": "Button",
+      "format": "BIT",
+      "offset": 0,
+      "bit": 5,
+      "sizeInBits": 1
+    },
+    {
+      "name": "dpad/right",
+      "layout": "Button",
+      "format": "BIT",
+      "offset": 0,
+      "bit": 6,
+      "sizeInBits": 1
+    },
+    {
+      "name": "leftStick",
+      "layout": "Stick",
+      "format": "MSTK",
+      "offset": 2,
+      "sizeInBits": 16
+    },
+    {
+      "name": "leftStick/x",
+      "format": "SBYT",
+      "offset": 0,
+      "sizeInBits": 8,
+      "defaultState": 0,
+      "parameters": "normalize=false,invert=false,clamp=0"
+    },
+    {
+      "name": "leftStick/y",
+      "format": "SBYT",
+      "offset": 1,
+      "sizeInBits": 8,
+      "defaultState": 0,
+      "parameters": "normalize=false,invert=false,clamp=0"
+    },
+    {
+      "name": "leftStick/left",
+      "format": "SBYT",
+      "offset": 0,
+      "sizeInBits": 8,
+      "parameters": "normalize=false,clamp=1,clampMin=-1,clampMax=0,invert=true"
+    },
+    {
+      "name": "leftStick/right",
+      "format": "SBYT",
+      "offset": 0,
+      "sizeInBits": 8,
+      "parameters": "normalize=false,clamp=1,clampMin=0,clampMax=1,invert=false"
+    },
+    {
+      "name": "leftStick/up",
+      "format": "SBYT",
+      "offset": 1,
+      "sizeInBits": 8,
+      "parameters": "normalize=false,clamp=1,clampMin=0,clampMax=1,invert=false"
+    },
+    {
+      "name": "leftStick/down",
+      "format": "SBYT",
+      "offset": 1,
+      "sizeInBits": 8,
+      "parameters": "normalize=false,clamp=1,clampMin=-1,clampMax=0,invert=true"
+    },
+    {
+      "name": "rightStick",
+      "layout": "Stick",
+      "format": "MSTK",
+      "offset": 4,
+      "sizeInBits": 16
+    },
+    {
+      "name": "rightStick/x",
+      "format": "SBYT",
+      "offset": 0,
+      "sizeInBits": 8,
+      "defaultState": 0,
+      "parameters": "normalize=false,invert=false,clamp=0"
+    },
+    {
+      "name": "rightStick/y",
+      "format": "SBYT",
+      "offset": 1,
+      "sizeInBits": 8,
+      "defaultState": 0,
+      "parameters": "normalize=false,invert=false,clamp=0"
+    },
+    {
+      "name": "rightStick/left",
+      "format": "SBYT",
+      "offset": 0,
+      "sizeInBits": 8,
+      "parameters": "normalize=false,clamp=1,clampMin=-1,clampMax=0,invert=true"
+    },
+    {
+      "name": "rightStick/right",
+      "format": "SBYT",
+      "offset": 0,
+      "sizeInBits": 8,
+      "parameters": "normalize=false,clamp=1,clampMin=0,clampMax=1,invert=false"
+    },
+    {
+      "name": "rightStick/up",
+      "format": "SBYT",
+      "offset": 1,
+      "sizeInBits": 8,
+      "parameters": "normalize=false,clamp=1,clampMin=0,clampMax=1,invert=false"
+    },
+    {
+      "name": "rightStick/down",
+      "format": "SBYT",
+      "offset": 1,
+      "sizeInBits": 8,
+      "parameters": "normalize=false,clamp=1,clampMin=-1,clampMax=0,invert=true"
+    },
+    {
+      "name": "leftTrigger",
+      "format": "BYTE",
+      "offset": 6,
+      "sizeInBits": 8,
+      "defaultState": 0
+    },
+    {
+      "name": "rightTrigger",
+      "format": "BYTE",
+      "offset": 7,
+      "sizeInBits": 8,
+      "defaultState": 0
+    }
+  ]
+}
