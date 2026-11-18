@@ -46,6 +46,10 @@ internal sealed partial class SongLaunchService
     private bool submittedMenu;
     private bool submittedSong;
     private bool done;
+    private bool unityLogAttached;
+    private object? pendingStatus;
+    private int statusWriteAttempts;
+    private float nextStatusRetry;
 
     internal static (string? RequestId, bool FastBoot, bool SavesDisabled) GetResultContext(uint songId, int difficulty)
     {
@@ -61,10 +65,16 @@ internal sealed partial class SongLaunchService
         this.logger = logger;
         started = Time.realtimeSinceStartup;
         originalRunInBackground = Application.runInBackground;
-        Application.runInBackground = true;
         resultPath = Path.Combine(MelonEnvironment.UserDataDirectory, "MoMSongLaunch-result.json");
         unityLog = (Action<string, string, LogType>)OnUnityLog;
+    }
+
+    private void Initialize()
+    {
+        Report("pending", "Accepted startup song request.");
+        Application.runInBackground = true;
         Application.add_logMessageReceived(unityLog);
+        unityLogAttached = true;
         activeRequest = this;
         if (request.FastBoot) InstallFastBoot();
         harmony.Patch(AccessTools.Method(typeof(Game.Scene.MusicSelect.MainBase), "InitializeSetting"),
@@ -72,16 +82,33 @@ internal sealed partial class SongLaunchService
         foreach (var method in new[] { "NoMaskListUpdate", "SetNoMaskListItem", "LateUpdate" })
             harmony.Patch(AccessTools.Method(typeof(MusicList), method),
                 prefix: new HarmonyMethod(typeof(SongLaunchService), nameof(CanUpdateSongPreview)));
-        Report("pending", "Accepted startup song request.");
     }
 
     public static SongLaunchService? FromPendingRequest(MelonLogger.Instance logger)
     {
         var path = Path.Combine(MelonEnvironment.UserDataDirectory, "MoMSongLaunch-request.json");
-        if (!File.Exists(path)) return null;
+        var claimed = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
         try
         {
-            var request = JsonSerializer.Deserialize<Request>(File.ReadAllText(path))
+            // Claim the mailbox atomically before reading it. A client may
+            // publish a new request while the claimed file is being read.
+            File.Move(path, claimed);
+        }
+        catch (FileNotFoundException)
+        {
+            logger.Msg($"No pending song request at {path}; process {Environment.ProcessId}.");
+            return null;
+        }
+        catch (Exception error)
+        {
+            logger.Error($"Could not claim song request at {path}: {error}");
+            return null;
+        }
+
+        Request? request = null;
+        try
+        {
+            request = JsonSerializer.Deserialize<Request>(File.ReadAllText(claimed))
                 ?? throw new InvalidDataException("Empty request.");
             if (!Guid.TryParse(request.RequestId, out _) || request.Difficulty is < 0 or > 2)
                 throw new InvalidDataException("RequestId must be a GUID and Difficulty must be 0, 1 or 2.");
@@ -91,21 +118,45 @@ internal sealed partial class SongLaunchService
                 throw new InvalidDataException("Unknown play style, starting item or party.");
             if (!request.FastBoot && (request.StartingItem != "None" || request.Party != "Classic"))
                 throw new InvalidDataException("Starting item and party overrides require a temporary FastBoot session.");
-            // Claim it before doing anything in the game; later launches must
-            // not repeat the request after a crash or normal game restart.
-            File.Move(path, Path.Combine(MelonEnvironment.UserDataDirectory,
-                "MoMSongLaunch-active-" + request.RequestId + ".json"));
-            return new SongLaunchService(request, logger);
+            var activePath = Path.Combine(MelonEnvironment.UserDataDirectory,
+                "MoMSongLaunch-active-" + request.RequestId + ".json");
+            File.Move(claimed, activePath);
+            logger.Msg($"Claimed song request {request.RequestId}; process={Environment.ProcessId}; " +
+                $"song={request.SongId}; difficulty={request.Difficulty}; fastBoot={request.FastBoot}; " +
+                $"playStyle={request.PlayStyle}; startingItem={request.StartingItem}; party={request.Party}; file={activePath}.");
+            var service = new SongLaunchService(request, logger);
+            try
+            {
+                service.Initialize();
+                return service;
+            }
+            catch (Exception error)
+            {
+                service.Finish("failed", error.ToString());
+                return service;
+            }
         }
         catch (Exception error)
         {
-            logger.Error("Could not accept song request: " + error);
+            logger.Error($"Could not accept song request {request?.RequestId ?? "(unknown)"} from {path}: {error}");
+            if (request != null && Guid.TryParse(request.RequestId, out _))
+                WriteStatus(Path.Combine(MelonEnvironment.UserDataDirectory, "MoMSongLaunch-result.json"),
+                    new { request.RequestId, status = "failed", step = "claiming_request", message = error.Message,
+                        processId = Environment.ProcessId, utc = DateTime.UtcNow }, logger);
             return null;
+        }
+        finally
+        {
+            try { File.Delete(claimed); }
+            catch (IOException error) { logger.Warning($"Could not remove {claimed}: {error.Message}"); }
+            catch (UnauthorizedAccessException error) { logger.Warning($"Could not remove {claimed}: {error.Message}"); }
         }
     }
 
     public void Update()
     {
+        if (pendingStatus != null && Time.realtimeSinceStartup >= nextStatusRetry)
+            PublishStatus();
         if (done || Time.realtimeSinceStartup < nextPoll) return;
         nextPoll = Time.realtimeSinceStartup + 0.25f;
         try
@@ -132,7 +183,7 @@ internal sealed partial class SongLaunchService
             if (state != previousState)
             {
                 previousState = state;
-                logger.Msg("Song launch: " + state);
+                logger.Msg($"Song launch {request.RequestId}: {state}");
                 Report("pending", state);
             }
 
@@ -266,32 +317,42 @@ internal sealed partial class SongLaunchService
     private void Finish(string status, string message)
     {
         done = true;
-        Application.runInBackground = originalRunInBackground;
-        // Keep error reporting for the temporary session, including returning
-        // from the song. The generated remove wrapper cannot Cast a null last
-        // delegate, so ordinary sessions assign the native result safely.
-        if (!temporaryProfile)
+        try
         {
-            var remaining = Il2CppSystem.Delegate.Remove(Application.s_LogCallbackHandler, unityLog);
-            Application.s_LogCallbackHandler = remaining == null ? null : remaining.Cast<Application.LogCallback>();
+            Application.runInBackground = originalRunInBackground;
+            // Keep error reporting for temporary sessions, including returning
+            // from a song. Assign the native delegate result even if it is null.
+            if (!temporaryProfile && unityLogAttached)
+            {
+                var remaining = Il2CppSystem.Delegate.Remove(Application.s_LogCallbackHandler, unityLog);
+                Application.s_LogCallbackHandler = remaining == null ? null : remaining.Cast<Application.LogCallback>();
+            }
+        }
+        catch (Exception error)
+        {
+            logger.Error($"Song launch {request.RequestId} could not restore Unity settings: {error}");
         }
         // Keep the early-profile menu fixes for this session so returning from
         // a failed/finished song also has a valid selection. Startup stays done.
         if (status != "ready" && !temporaryProfile)
         {
             activeRequest = null;
-            harmony.UnpatchSelf();
+            try { harmony.UnpatchSelf(); }
+            catch (Exception error) { logger.Error($"Song launch {request.RequestId} could not unpatch hooks: {error}"); }
         }
-        step = status;
+        if (status == "ready") step = status;
         Report(status, message);
-        logger.Msg($"Song launch {status}: {message}");
+        var logMessage = $"Song launch {request.RequestId} {status} at {step}, " +
+            $"after {Time.realtimeSinceStartup - started:F1}s: {message}";
+        if (status == "failed") logger.Error(logMessage);
+        else logger.Msg(logMessage);
     }
 
     private void OnUnityLog(string message, string trace, LogType type)
     {
         if (type is not (LogType.Error or LogType.Exception or LogType.Assert) ||
             unityErrors.Count >= 10 || !unityErrors.Add(message + trace)) return;
-        logger.Error($"Unity during song launch: {type}: {message}\n{trace}");
+        logger.Error($"Unity during song launch {request.RequestId}: {type}: {message}\n{trace}");
     }
 
     private static void PrepareInitialSong(Game.Scene.MusicSelect.MainBase __instance)
@@ -330,12 +391,37 @@ internal sealed partial class SongLaunchService
 
     private void Report(string status, string message)
     {
-        var data = new { request.RequestId, status, step, message, songId = selectedSong, requestedSongId = request.SongId,
+        pendingStatus = new { request.RequestId, status, step, message, processId = Environment.ProcessId,
+            songId = selectedSong, requestedSongId = request.SongId,
             songName = selectedName, difficulty = request.Difficulty, utc = DateTime.UtcNow,
             elapsedSeconds = Time.realtimeSinceStartup - started, fastBoot = request.FastBoot,
             playStyle = request.PlayStyle, startingItem = request.StartingItem, party = request.Party,
             savesDisabled = temporaryProfile, playback = verifiedPlayback };
-        File.WriteAllText(resultPath + ".tmp", JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true }));
-        File.Move(resultPath + ".tmp", resultPath, true);
+        statusWriteAttempts = 0;
+        PublishStatus();
+    }
+
+    private void PublishStatus()
+    {
+        if (pendingStatus == null) return;
+        if (WriteStatus(resultPath, pendingStatus, logger, statusWriteAttempts > 0) || ++statusWriteAttempts >= 4)
+            pendingStatus = null;
+        nextStatusRetry = Time.realtimeSinceStartup + 0.25f;
+    }
+
+    private static bool WriteStatus(string path, object data, MelonLogger.Instance logger, bool alreadyLogged = false)
+    {
+        var temporary = path + "." + Environment.ProcessId + ".tmp";
+        try
+        {
+            File.WriteAllText(temporary, JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true }));
+            File.Move(temporary, path, true);
+            return true;
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        {
+            if (!alreadyLogged) logger.Warning($"Could not publish song launch status at {path}: {error.Message}");
+            return false;
+        }
     }
 }

@@ -24,35 +24,38 @@ if ($UseSaveProfile -and ($StartingItem -ne 'None' -or $PSBoundParameters.Contai
 $manifestRoot = Join-Path $env:ProgramData 'Epic\EpicGamesLauncher\Data\Manifests'
 $manifest = $null
 foreach ($item in Get-ChildItem -LiteralPath $manifestRoot -Filter '*.item') {
-    $candidate = Get-Content -LiteralPath $item.FullName -Raw | ConvertFrom-Json
-    if ($candidate.LaunchExecutable -ne 'KINGDOM HEARTS Melody of Memory.exe') { continue }
-    if ($GameDir -and [IO.Path]::GetFullPath($candidate.InstallLocation) -ne [IO.Path]::GetFullPath($GameDir)) { continue }
+    try { $candidate = Get-Content -LiteralPath $item.FullName -Raw | ConvertFrom-Json } catch { continue }
+    if (!$candidate.LaunchExecutable -or !$candidate.InstallLocation -or !$candidate.AppName) { continue }
+    $executable = $candidate.LaunchExecutable.Trim()
+    if ([IO.Path]::GetFileName($executable) -ne 'KINGDOM HEARTS Melody of Memory.exe') { continue }
+    if (![IO.Path]::IsPathRooted($executable)) { $executable = Join-Path $candidate.InstallLocation.Trim() $executable }
+    if (!(Test-Path -LiteralPath $executable -PathType Leaf)) { continue }
+    $root = Split-Path -Parent (Resolve-Path -LiteralPath $executable).Path
+    if ($GameDir -and $root -ne (Resolve-Path -LiteralPath $GameDir).Path) { continue }
     $manifest = $candidate
     break
 }
 if (!$manifest) { throw 'No matching Epic Melody of Memory installation found.' }
-$GameDir = (Resolve-Path -LiteralPath $manifest.InstallLocation).Path
+$GameDir = $root
 $gameExe = Join-Path $GameDir 'KINGDOM HEARTS Melody of Memory.exe'
 if (!(Test-Path -LiteralPath $gameExe) -or
     !(Test-Path -LiteralPath (Join-Path $GameDir 'Mods\MoMController.dll'))) {
     throw 'Install the MoM controller/song-launch mod before launching a song.'
 }
-$running = @(Get-Process 'KINGDOM HEARTS Melody of Memory' -ErrorAction SilentlyContinue |
-    Where-Object { $_.Path -eq $gameExe })
-if ($running.Count -gt 0 -and !$RestartGame) {
-    throw 'MoM is already running. Close it first, or use -RestartGame to discard the current session.'
-}
 $userData = Join-Path $GameDir 'UserData'
 $requestPath = Join-Path $userData 'MoMSongLaunch-request.json'
 $resultPath = Join-Path $userData 'MoMSongLaunch-result.json'
-if (Test-Path -LiteralPath $requestPath) {
-    throw "An unconsumed launch request already exists: $requestPath"
+$stateDir = Join-Path $GameDir '.kh3ap-mom'
+function Invoke-WithLaunchLock([scriptblock]$Action) {
+    New-Item -ItemType Directory -Path $stateDir -Force | Out-Null
+    $stream = [IO.File]::Open((Join-Path $stateDir 'lock'), 'OpenOrCreate', 'ReadWrite', 'ReadWrite')
+    try {
+        $stream.Lock(0, 1)
+        & $Action
+    } finally {
+        $stream.Dispose()
+    }
 }
-foreach ($gameProcess in $running) {
-    Stop-Process -Id $gameProcess.Id
-    if (!$gameProcess.WaitForExit(10000)) { throw 'MoM did not exit.' }
-}
-New-Item -ItemType Directory -Path $userData -Force | Out-Null
 $requestId = [guid]::NewGuid().ToString()
 $request = [ordered]@{
     RequestId = $requestId
@@ -63,18 +66,47 @@ $request = [ordered]@{
     Party = $Party
 }
 if ($PSBoundParameters.ContainsKey('SongId')) { $request.SongId = $SongId }
-[IO.File]::WriteAllText($requestPath + '.tmp', ($request | ConvertTo-Json), [Text.UTF8Encoding]::new($false))
-[IO.File]::Move($requestPath + '.tmp', $requestPath)
-$dispatchedAt = [DateTime]::UtcNow
-try {
-    Start-Process "com.epicgames.launcher://apps/$($manifest.AppName)?action=launch&silent=true"
-} catch {
-    # Remove only our own unconsumed request if dispatch failed.
-    if (Test-Path -LiteralPath $requestPath) {
+function Remove-OwnPendingRequest {
+    try {
         $pending = Get-Content -LiteralPath $requestPath -Raw | ConvertFrom-Json
-        if ($pending.RequestId -eq $requestId) { Remove-Item -LiteralPath $requestPath }
+        if ($pending.RequestId -eq $requestId) { [IO.File]::Delete($requestPath) }
+    } catch {
+        Write-Verbose "Could not clear pending request ${requestId}: $_"
     }
-    throw
+}
+$dispatchedAt = Invoke-WithLaunchLock {
+    $running = @(Get-Process 'KINGDOM HEARTS Melody of Memory' -ErrorAction SilentlyContinue)
+    foreach ($gameProcess in $running) {
+        if ($gameProcess.Path -ne $gameExe) { throw 'Cannot verify the running MoM installation. Close MoM first.' }
+        if (!$RestartGame) {
+            throw 'MoM is already running. Close it first, or use -RestartGame to discard the current session.'
+        }
+        Stop-Process -Id $gameProcess.Id
+        if (!$gameProcess.WaitForExit(10000)) { throw 'MoM did not exit.' }
+    }
+    New-Item -ItemType Directory -Path $userData -Force | Out-Null
+    $temporary = "$requestPath.$requestId.tmp"
+    try {
+        [IO.File]::WriteAllText($temporary, ($request | ConvertTo-Json), [Text.UTF8Encoding]::new($false))
+        if ([IO.File]::Exists($requestPath)) {
+            Write-Host "Replacing the pending MoM song request at $requestPath."
+            try { [IO.File]::Replace($temporary, $requestPath, [NullString]::Value) }
+            catch [IO.FileNotFoundException] { [IO.File]::Move($temporary, $requestPath) }
+        } else {
+            [IO.File]::Move($temporary, $requestPath)
+        }
+        $appName = [Uri]::EscapeDataString($manifest.AppName.Trim())
+        $started = [DateTime]::UtcNow
+        try {
+            Start-Process "com.epicgames.launcher://apps/${appName}?action=launch&silent=true"
+        } catch {
+            Remove-OwnPendingRequest
+            throw
+        }
+        $started
+    } finally {
+        [IO.File]::Delete($temporary)
+    }
 }
 Write-Host "Requested MoM song launch $requestId ($Difficulty)."
 if ($NoWait) {
@@ -102,8 +134,5 @@ while ([DateTime]::UtcNow -lt $deadline) {
     }
     Start-Sleep -Milliseconds 500
 }
-if (Test-Path -LiteralPath $requestPath) {
-    $pending = Get-Content -LiteralPath $requestPath -Raw | ConvertFrom-Json
-    if ($pending.RequestId -eq $requestId) { Remove-Item -LiteralPath $requestPath }
-}
+try { Invoke-WithLaunchLock { Remove-OwnPendingRequest } } catch { Write-Verbose "Could not check pending request: $_" }
 throw "Timed out waiting for MoM request $requestId. Inspect $resultPath and MelonLoader\Latest.log."

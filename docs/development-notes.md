@@ -158,12 +158,14 @@ Requests use `UserData\MoMSongLaunch-request.json`:
 
 Use a fresh GUID for each request. `SongId` is optional. Difficulty is 0/1/2 for
 Beginner/Standard/Proud. `FastBoot` defaults to false for older JSON callers;
-the PowerShell launcher explicitly requests it unless `-UseSaveProfile` is set. The mod
-claims the request into `MoMSongLaunch-active-<guid>.json` at startup so it
-cannot run again accidentally. Its result is atomically written to
+the PowerShell launcher explicitly requests it unless `-UseSaveProfile` is set.
+Each dispatch atomically replaces any pending request after the previous game
+process has exited. The mod claims the request before reading it and records
+valid requests in `MoMSongLaunch-active-<guid>.json`. Its result is atomically written to
 `MoMSongLaunch-result.json`; always match `RequestId` because an old result may
 still exist. Status is `pending`, `ready`, or `failed`. A mod timeout stops
-automation after 180 seconds. Claimed request files are a local audit trail.
+automation after 180 seconds. The status includes the MoM process ID, and a
+failure includes the startup step at which it occurred.
 Results also include `fastBoot`, `savesDisabled`, and the verified playback state.
 The waiting PowerShell launcher adds `launchElapsedSeconds`, measured from Epic
 dispatch; the mod's `elapsedSeconds` starts later, inside Unity.
