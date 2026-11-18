@@ -6,7 +6,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Layouts;
 
-[assembly: MelonInfo(typeof(MoMController.ControllerMod), "MoM Direct Controller", "0.1.4", "ArchipelagoMine")]
+[assembly: MelonInfo(typeof(MoMController.ControllerMod), "MoM Direct Controller", "0.1.5", "ArchipelagoMine")]
 [assembly: MelonGame("SQUARE ENIX", "KINGDOM HEARTS Melody of Memory")]
 
 namespace MoMController;
@@ -61,7 +61,7 @@ public sealed class ControllerMod : MelonMod
         // Separate from optional input diagnostics: the client can verify a fresh installation.
         var readyPath = Path.Combine(MelonEnvironment.UserDataDirectory, "MoMInstallReady.json");
         File.WriteAllText(readyPath + ".tmp", JsonSerializer.Serialize(new {
-            schema = 1, version = "0.1.4", process_id = Environment.ProcessId, utc = DateTime.UtcNow
+            schema = 1, version = "0.1.5", process_id = Environment.ProcessId, utc = DateTime.UtcNow
         }));
         File.Move(readyPath + ".tmp", readyPath, true);
     }
